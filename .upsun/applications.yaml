@@ -1,0 +1,51 @@
+- name: 'django-app'
+
+  type: 'python:3.10'
+
+  hooks:
+      build: |
+          cd django
+          
+          # Download the latest version of pip
+          python3.10 -m pip install --upgrade pip
+
+          # Install dependencies
+          pip install -r requirements.txt
+
+  web:
+      upstream:
+          socket_family: unix
+      commands:
+          start: 'gunicorn -w 4 -b unix:$SOCKET myapp.wsgi:application'
+      locations:
+          '/':
+              passthru: true
+          '/static':
+              root: 'static'
+              expires: 1h
+              allow: true
+
+  relationships:
+      database: 'db:postgresql'
+
+- name: 'nextjs-app'
+
+  type: 'nodejs:14'
+
+  dependencies:
+      nodejs:
+          yarn: "^1.22.0"
+
+  hooks:
+      build: |
+          cd nextjs
+
+          # Install dependencies
+          yarn --silent
+
+          # Build the site
+          yarn build
+
+  web:
+      commands:
+          start: 'npx next start -p $PORT'
